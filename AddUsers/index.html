@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-uWxY/CJNBR+1zjPWmfnSnVxwRheevXITnMqoEIeG1LJrdI0GlVs/9cVSyPYXdcSF" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.0.0.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-kQtW33rZJAHjgefvhyyzcGF3C5TFyBQBA13V1RKPf4uH+bwyzQxZ6CmMZHmNBEfJ" crossorigin="anonymous"></script>
+</head>
+<body>
+    <nav class="navbar navbar-dark bg-dark">
+        <div class="container-fluid">
+          <a class="navbar-brand">Navbar</a>
+          <form class="d-flex">
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" id="btnLogIn" data-bs-target="#exampleModal" data-bs-whatever="@fat">Iniciar Session</button>
+            <button type="button" class="btn btn-primary" onclick="closeSesion()" id="btnCerrar" data-bs-dismiss="modal">Cerrar Sesion</button>
+          </form>
+        </div>
+    </nav>
+    <div class="container">
+        <div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title" id="exampleModalLabel">Bienvenido</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                  <form>
+                    <div class="mb-3">
+                      <label for="recipient-name" class="col-form-label">Correo:</label>
+                      <input type="text" class="form-control" id="txtCorreo">
+                    </div>
+                    <div class="mb-3">
+                      <label for="message-text" class="col-form-label">Contraseña:</label>
+                      <input type="password" class="form-control" id="txtPass">
+                    </div>
+                  </form>
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-primary" onclick="logIn()" data-bs-dismiss="modal">Ingresar</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <section id="secLisDoc">
+            <label>Lista de Usuarios</label>
+            <div class="row mb-3 mt-3">
+                <div class="col-4">
+                    <a class="text-white btn btn-primary" href="newDoctor.html">new</a>
+                </div>
+                <div class="row">
+                    <div class="col-12">
+                        <table class="table caption-top">
+                            <thead>
+                                <tr>
+                                    <th class="col">Id</th>
+                                    <th class="col">nombre</th>
+                                    <th class="col">correo</th>
+                                    <th class="col">pass</th>
+                                    <th class="col">opcion</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+          </section>
+    </div>
+</body>
+<script>
+    var seccion = false;
+    var editar = false;
+    var sesion = true;
+
+    window.onload = function() {
+        let parametro = new URLSearchParams(location.search);
+        sesion = parametro.get('flag');
+        console.log(sesion);
+        if(sesion){
+          Obtener();
+          document.getElementById("btnLogIn").hidden = true;
+        }
+        else{
+          document.getElementById("btnCerrar").hidden = true;
+          document.getElementById("secLisDoc").hidden = true;
+        }
+    };
+    function closeSesion(){
+      sesion = false;
+      document.getElementById("secLisDoc").hidden = true;
+      document.getElementById("btnCerrar").hidden = true;
+      document.getElementById("btnLogIn").hidden = false;
+    }
+    function logIn(){
+        var data = {
+            Correo : $("#txtCorreo").val(),
+            Pass : $("#txtPass").val()
+        }
+        $.post("https://localhost:44306/api/LogIn/",data)
+        .done(function(response){   
+            if(response){
+              document.getElementById("secLisDoc").hidden = false;
+              document.getElementById("btnCerrar").hidden = false;
+              document.getElementById("btnLogIn").hidden = true;
+              Obtener();
+              sesion = true;
+            }
+            else{
+              sesion = false;
+                alert("usuario incorrecto");
+            }
+        });
+    }
+    function Obtener(){
+        $(".table tbody").html("");
+        $.get("https://localhost:44306/api/Usuario")
+        .done(function(response){   
+            console.log(response);
+            $.each(response, function(id, fila){
+                $("<tr>").append(
+                    $("<td>").text(fila.id),
+                    $("<td>").text(fila.nombre),
+                    $("<td>").text(fila.correo),
+                    $("<td>").text(fila.pass),
+                    $("<td>").append(
+                        $("<button>").data("id", fila.id).addClass("btn btn-success btn-sm mr-1 editar").text("Editar").attr({"type":"button"}),
+                        $("<button>").data("id", fila.id).addClass("btn btn-danger btn-sm mr-1 eliminar").text("Eliminar").attr({"type":"button"})
+                    )
+                ).appendTo(".table");
+            });
+        });
+    }
+    $(document).on('click', '.editar', function(){
+      console.log($(this).data("id"));
+      window.location = "newDoctor.html?id="+$(this).data("id");
+    });
+
+    $(document).on('click', '.eliminar', function(){
+      console.log($(this).data("id"));
+      $.ajax({
+        method: "DELETE",
+        url: "https://localhost:44306/api/Usuario/"+ $(this).data("id")
+      })
+      .done(function(response){
+        console.log(response);
+        if(response){
+          Obtener();
+        }
+        else{
+          alert("Error al eliminar")
+        }
+      });
+    });
+</script>
+</html>
